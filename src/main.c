@@ -1,8 +1,5 @@
-#include "SDL_events.h"
-#include "SDL_keycode.h"
-#include "SDL_render.h"
-#include "SDL_timer.h"
 #include <stdbool.h>
+#include <limits.h>
 #include <SDL.h>
 
 #define FPS 30
@@ -49,6 +46,20 @@ struct player_t {
 	float walk_speed;
 	float turn_speed;
 } player;
+
+struct ray_t {
+	float ray_angle;
+	float wall_hit_x;
+	float wall_hit_y;
+	bool was_hit_vert;
+	float distance;
+	// Use bitmap?
+	bool is_ray_facing_up;
+	bool is_ray_facing_down;
+	bool is_ray_facing_left;
+	bool is_ray_facing_right;
+	int wall_hit_content;
+} rays[NUM_RAYS];
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -106,6 +117,158 @@ void setup(void)
 	player.turn_speed = 45 * (PI / 180);
 }
 
+float normalise_angle(const float angle)
+{
+	float norm_angle = remainder(angle, TWO_PI);
+	if (angle < 0) {
+		norm_angle = TWO_PI + angle;
+	}
+	return norm_angle;
+}
+
+float distance_between_points(const int x1, const int y1, const int x2, const int y2)
+{
+	return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+}
+
+bool map_has_wall_at(const float x, const float y)
+{
+	if (x < 0 || x > WINDOW_WIDTH || y < 0 || y > WINDOW_HEIGHT) {
+		return true;
+	}
+
+	const int col = floor(x / TILE_SIZE);
+	const int row = floor(y / TILE_SIZE);
+
+	return map[row][col] != 0;
+}
+
+void cast_ray(const float angle, const int strip_id)
+{
+	const float ray_angle = normalise_angle(angle);
+
+	bool is_ray_facing_down = ray_angle > 0 && ray_angle < PI;
+	bool is_ray_facing_up = !is_ray_facing_down;
+	bool is_ray_facing_right = ray_angle < 0.5 * PI || ray_angle > 1.5 * PI;
+	bool is_ray_facing_left = !is_ray_facing_right;
+	
+	// Horizontal intercept
+	float y_intercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
+	y_intercept += is_ray_facing_down ? TILE_SIZE : 0;
+
+	float x_intercept = player.x + (y_intercept - player.y) / tan(ray_angle);
+		
+	float ystep = TILE_SIZE;
+	ystep *= is_ray_facing_up ? -1 : 1;
+
+	float xstep = TILE_SIZE / tan(ray_angle);
+	xstep *= is_ray_facing_left && xstep > 0 ? -1 : 1;
+	xstep *= is_ray_facing_right && xstep < 0 ? -1 : 1;
+
+	float next_horz_touch_x = x_intercept;
+	float next_horz_touch_y = y_intercept;
+	bool found_horz_wall_hit = false;
+	float horz_wall_hit_x = 0;
+	float horz_wall_hit_y = 0;
+	int horz_wall_content = 0;
+		
+	while ( 
+		next_horz_touch_x >= 0 && next_horz_touch_x <= MAP_NUM_COLS * TILE_SIZE
+		&& next_horz_touch_y >= 0 && next_horz_touch_y <= MAP_NUM_ROWS * TILE_SIZE
+	) {
+		float x_to_check = next_horz_touch_x;
+		float y_to_check = next_horz_touch_y + (is_ray_facing_up ? -1 : 0);
+		
+		if (map_has_wall_at(x_to_check, y_to_check)) {
+			found_horz_wall_hit = true;
+			horz_wall_hit_x = next_horz_touch_x;
+			horz_wall_hit_y = next_horz_touch_y;
+			horz_wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+			break;
+		}
+
+		next_horz_touch_x += xstep;
+		next_horz_touch_y += ystep;
+	}
+
+	// Vertical intercept
+	x_intercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
+	x_intercept += is_ray_facing_right ? TILE_SIZE : 0;
+
+	y_intercept = player.y + (x_intercept - player.x) / tan(ray_angle);
+		
+	xstep = TILE_SIZE;
+	xstep *= is_ray_facing_left ? -1 : 1;
+
+	ystep = TILE_SIZE / tan(ray_angle);
+	ystep *= is_ray_facing_up && ystep > 0 ? -1 : 1;
+	ystep *= is_ray_facing_down && ystep < 0 ? -1 : 1;
+
+	float next_vert_touch_x = x_intercept;
+	float next_vert_touch_y = y_intercept;
+	bool found_vert_wall_hit = false;
+	float vert_wall_hit_x = 0;
+	float vert_wall_hit_y = 0;
+	int vert_wall_content = 0;
+		
+	while ( 
+		next_vert_touch_x >= 0 && next_vert_touch_x <= MAP_NUM_COLS * TILE_SIZE
+		&& next_vert_touch_y >= 0 && next_vert_touch_y <= MAP_NUM_ROWS * TILE_SIZE
+	) {
+		float x_to_check = next_vert_touch_x + (is_ray_facing_left ? -1 : 0);
+		float y_to_check = next_vert_touch_y;
+		
+		if (map_has_wall_at(x_to_check, y_to_check)) {
+			found_vert_wall_hit = true;
+			vert_wall_hit_x = next_vert_touch_x;
+			vert_wall_hit_y = next_vert_touch_y;
+			vert_wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+			break;
+		}
+
+		next_vert_touch_x += xstep;
+		next_vert_touch_y += ystep;
+	}
+
+	const float horz_hit_distance = found_horz_wall_hit
+		? distance_between_points(player.x, player.y, horz_wall_hit_x, horz_wall_hit_y)
+		: INT_MAX;
+	const float vert_hit_distance = found_vert_wall_hit
+		? distance_between_points(player.x, player.y, horz_wall_hit_x, horz_wall_hit_y)
+		: INT_MAX;
+
+	rays[strip_id].ray_angle = ray_angle;
+	rays[strip_id].is_ray_facing_down = is_ray_facing_down;
+	rays[strip_id].is_ray_facing_up = is_ray_facing_up;
+	rays[strip_id].is_ray_facing_left = is_ray_facing_left;
+	rays[strip_id].is_ray_facing_right = is_ray_facing_right;
+	
+	if (vert_hit_distance < horz_hit_distance) {
+		rays[strip_id].distance = vert_hit_distance;
+		rays[strip_id].wall_hit_x = vert_wall_hit_x;
+		rays[strip_id].wall_hit_y = vert_wall_hit_y;
+		rays[strip_id].wall_hit_content = vert_wall_content;
+		rays[strip_id].was_hit_vert = true;
+		return;
+	}
+
+	rays[strip_id].distance = horz_hit_distance;
+	rays[strip_id].wall_hit_x = horz_wall_hit_x;
+	rays[strip_id].wall_hit_y = horz_wall_hit_y;
+	rays[strip_id].wall_hit_content = horz_wall_content;
+	rays[strip_id].was_hit_vert = false;
+}
+
+void cast_rays(void)
+{
+	float ray_angle = player.rotation_angle - (FOV_ANGLE / 2);
+
+	for (size_t strip_id = 0; strip_id < NUM_RAYS; strip_id++) {
+		cast_ray(ray_angle, strip_id);
+		ray_angle += FOV_ANGLE / NUM_RAYS;
+	}
+}
+
 void render_map(void)
 {
 	for (size_t i = 0; i < MAP_NUM_ROWS; i++) {
@@ -124,18 +287,6 @@ void render_map(void)
 			SDL_RenderFillRect(renderer, &map_tile_rect);
 		}
 	}
-}
-
-bool map_has_wall_at(const float x, const float y)
-{
-	if (x < 0 || x > WINDOW_WIDTH || y < 0 || y > WINDOW_HEIGHT) {
-		return true;
-	}
-
-	const int col = floor(x / TILE_SIZE);
-	const int row = floor(y / TILE_SIZE);
-
-	return map[row][col] != 0;
 }
 
 void move_player(float delta_time)
@@ -228,6 +379,7 @@ void update(void)
 	ticks_last_frame = SDL_GetTicks();
 
 	move_player(delta_time);
+	cast_rays();
 }
 
 void render(void)
@@ -236,6 +388,7 @@ void render(void)
 	SDL_RenderClear(renderer);
 
 	render_map();
+	// render_rays();
 	render_player();
 	
 	SDL_RenderPresent(renderer);
