@@ -1,6 +1,13 @@
 # Vargensstein 3D
 
-A Raycasting game based off of Wolfenstein 3D written in C.
+A Raycasting game based off of Wolfenstein 3D written in C SDL.
+
+# Dependencies
+
+- [gcc](https://gcc.gnu.org/)
+- or [clang](https://clang.llvm.org/)
+- [make](https://www.gnu.org/software/make/)
+- [SDL2](https://www.libsdl.org/)
 
 # Building
 
@@ -14,10 +21,16 @@ make build
 make run
 ```
 
-# Debug Build
+# Build a Debug Binary
 
 ```bash
 make debug-build
+```
+
+# Start `lldb` or `gdb` With Debug Binary
+
+```bash
+make debug
 ```
 
 # Cleaning the Project
