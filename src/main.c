@@ -8,8 +8,47 @@
 #define FPS 30
 #define FRAME_TIME_LEN (1000.0 / FPS)
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define PI 3.14159265
+#define TWO_PI 6.28318530
+
+#define TILE_SIZE 64
+#define MAP_NUM_ROWS 13
+#define MAP_NUM_COLS 20
+
+#define WINDOW_WIDTH (MAP_NUM_COLS * TILE_SIZE)
+#define WINDOW_HEIGHT (MAP_NUM_ROWS * TILE_SIZE)
+
+#define FOV_ANGLE (60 * PI / 180)
+#define NUM_RAYS WINDOW_WIDTH
+#define MINIMAP_SCALE_FACTOR 1.0
+
+const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+};
+
+struct player_t {
+	float x;
+	float y;
+	float width;
+	float height;
+	int turn_direction; // -1 for left; +1 for right
+	int walk_direction; // -1 for back; +1 for front
+	float rotation_angle;
+	float walk_speed;
+	float turn_speed;
+} player;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -17,7 +56,6 @@ SDL_Renderer *renderer;
 bool is_running;
 
 float ticks_last_frame = 0;
-int player_x, player_y;
 
 bool handle_err(void)
 {
@@ -57,8 +95,66 @@ bool init_window(void)
 
 void setup(void)
 {
-	player_x = 0;
-	player_y = 0;
+	player.x = WINDOW_WIDTH / 2.0;
+	player.y = WINDOW_HEIGHT / 2.0;
+	player.width = 1;
+	player.height = 1;
+	player.turn_direction = 0;
+	player.walk_direction = 0;
+	player.rotation_angle = PI / 2;
+	player.walk_speed = 50;
+	player.turn_speed = 45 * (PI / 180);
+}
+
+void render_map(void)
+{
+	for (size_t i = 0; i < MAP_NUM_ROWS; i++) {
+		for (size_t j = 0; j < MAP_NUM_COLS; j++) {
+			int tile_x = j * TILE_SIZE;
+			int tile_y = i * TILE_SIZE;
+			int tile_colour = map[i][j] != 0 ? 255 : 0;
+
+			SDL_SetRenderDrawColor(renderer, tile_colour, tile_colour, tile_colour, 255);
+			SDL_Rect map_tile_rect = {
+				.x = tile_x * MINIMAP_SCALE_FACTOR,
+				.y = tile_y * MINIMAP_SCALE_FACTOR,
+				.w = TILE_SIZE * MINIMAP_SCALE_FACTOR,
+				.h = TILE_SIZE * MINIMAP_SCALE_FACTOR
+			};
+			SDL_RenderFillRect(renderer, &map_tile_rect);
+		}
+	}
+}
+
+void move_player(float delta_time)
+{
+	player.rotation_angle += player.turn_direction * player.turn_speed * delta_time;
+	const float move_step = player.walk_direction * player.walk_speed * delta_time;
+	const float new_x = player.x + cos(player.rotation_angle) * move_step;
+	const float new_y = player.y + sin(player.rotation_angle) * move_step;
+	player.x = new_x;
+	player.y = new_y;
+}
+
+void render_player(void)
+{
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	SDL_Rect player_rect = {
+		.x = player.x * MINIMAP_SCALE_FACTOR,
+		.y = player.y * MINIMAP_SCALE_FACTOR,
+		.h = player.height * MINIMAP_SCALE_FACTOR,
+		.w = player.width * MINIMAP_SCALE_FACTOR
+	};
+	SDL_RenderFillRect(renderer, &player_rect);
+
+	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+	SDL_RenderDrawLine(
+		renderer,
+		player.x * MINIMAP_SCALE_FACTOR,
+		player.y * MINIMAP_SCALE_FACTOR,
+		player.x + cos(player.rotation_angle) * 40 * MINIMAP_SCALE_FACTOR,
+		player.y + sin(player.rotation_angle) * 40 * MINIMAP_SCALE_FACTOR
+	);
 }
 
 void process_input(void)
@@ -73,6 +169,33 @@ void process_input(void)
 		case SDL_KEYDOWN: {
 			if (event.key.keysym.sym == SDLK_ESCAPE) {
 				is_running = false;
+			}
+			if (event.key.keysym.sym == SDLK_UP) {
+				player.walk_direction = 1;
+			}
+			if (event.key.keysym.sym == SDLK_DOWN) {
+				player.walk_direction = -1;
+			}
+			if (event.key.keysym.sym == SDLK_RIGHT) {
+				player.turn_direction = 1;
+			}
+			if (event.key.keysym.sym == SDLK_LEFT) {
+				player.turn_direction = -1;
+			}
+		} break;
+
+		case SDL_KEYUP: {
+			if (event.key.keysym.sym == SDLK_UP) {
+				player.walk_direction = 0;
+			}
+			if (event.key.keysym.sym == SDLK_DOWN) {
+				player.walk_direction = 0;
+			}
+			if (event.key.keysym.sym == SDLK_LEFT) {
+				player.turn_direction = 0;
+			}
+			if (event.key.keysym.sym == SDLK_RIGHT) {
+				player.turn_direction = 0;
 			}
 		} break;
 	}
@@ -89,8 +212,7 @@ void update(void)
 	float delta_time = (SDL_GetTicks() - ticks_last_frame) / 1000.0f;
 	ticks_last_frame = SDL_GetTicks();
 
-	player_x += 50 * delta_time;
-	player_y += 50 * delta_time;
+	move_player(delta_time);
 }
 
 void render(void)
@@ -98,14 +220,8 @@ void render(void)
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
-	SDL_Rect rect = (SDL_Rect){
-		.x = player_x,
-		.y = player_y,
-		.w = 20,
-		.h = 20
-	};
-	SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
-	SDL_RenderFillRect(renderer, &rect);
+	render_map();
+	render_player();
 	
 	SDL_RenderPresent(renderer);
 }
