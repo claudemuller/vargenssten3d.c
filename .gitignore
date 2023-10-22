@@ -1,0 +1,6 @@
+vargenssten3d
+compile_commands.json
+.cache
+debug*
+memcheck.out*
+bin
