@@ -8,6 +8,13 @@ A [Ray casting](https://en.wikipedia.org/wiki/Ray_casting) game based off of [Wo
 - or [clang](https://clang.llvm.org/)
 - [make](https://www.gnu.org/software/make/)
 - [SDL2](https://www.libsdl.org/)
+- [optional][Bear](https://github.com/rizsotto/Bear) - for auto-completion (in the editor)
+
+## Generate Compilation Database (for auto-completion)
+
+```bash
+make gen-compilation-db
+```
 
 ## Building
 
