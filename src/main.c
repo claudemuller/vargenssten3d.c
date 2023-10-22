@@ -102,7 +102,7 @@ void setup(void)
 	player.turn_direction = 0;
 	player.walk_direction = 0;
 	player.rotation_angle = PI / 2;
-	player.walk_speed = 50;
+	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
 }
 
@@ -110,12 +110,12 @@ void render_map(void)
 {
 	for (size_t i = 0; i < MAP_NUM_ROWS; i++) {
 		for (size_t j = 0; j < MAP_NUM_COLS; j++) {
-			int tile_x = j * TILE_SIZE;
-			int tile_y = i * TILE_SIZE;
-			int tile_colour = map[i][j] != 0 ? 255 : 0;
+			const int tile_x = j * TILE_SIZE;
+			const int tile_y = i * TILE_SIZE;
+			const int tile_colour = map[i][j] != 0 ? 255 : 0;
 
 			SDL_SetRenderDrawColor(renderer, tile_colour, tile_colour, tile_colour, 255);
-			SDL_Rect map_tile_rect = {
+			const SDL_Rect map_tile_rect = {
 				.x = tile_x * MINIMAP_SCALE_FACTOR,
 				.y = tile_y * MINIMAP_SCALE_FACTOR,
 				.w = TILE_SIZE * MINIMAP_SCALE_FACTOR,
@@ -126,20 +126,35 @@ void render_map(void)
 	}
 }
 
+bool map_has_wall_at(const float x, const float y)
+{
+	if (x < 0 || x > WINDOW_WIDTH || y < 0 || y > WINDOW_HEIGHT) {
+		return true;
+	}
+
+	const int col = floor(x / TILE_SIZE);
+	const int row = floor(y / TILE_SIZE);
+
+	return map[row][col] != 0;
+}
+
 void move_player(float delta_time)
 {
 	player.rotation_angle += player.turn_direction * player.turn_speed * delta_time;
 	const float move_step = player.walk_direction * player.walk_speed * delta_time;
 	const float new_x = player.x + cos(player.rotation_angle) * move_step;
 	const float new_y = player.y + sin(player.rotation_angle) * move_step;
-	player.x = new_x;
-	player.y = new_y;
+
+	if (!map_has_wall_at(new_x, new_y)) {
+		player.x = new_x;
+		player.y = new_y;
+	}
 }
 
 void render_player(void)
 {
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	SDL_Rect player_rect = {
+	const SDL_Rect player_rect = {
 		.x = player.x * MINIMAP_SCALE_FACTOR,
 		.y = player.y * MINIMAP_SCALE_FACTOR,
 		.h = player.height * MINIMAP_SCALE_FACTOR,
@@ -203,13 +218,13 @@ void process_input(void)
 
 void update(void)
 {
-	int time_to_wait = FRAME_TIME_LEN - (SDL_GetTicks() - ticks_last_frame);
+	const int time_to_wait = FRAME_TIME_LEN - (SDL_GetTicks() - ticks_last_frame);
 
 	if (time_to_wait > 0 && time_to_wait <= FRAME_TIME_LEN) {
 		SDL_Delay(time_to_wait);
 	}
 
-	float delta_time = (SDL_GetTicks() - ticks_last_frame) / 1000.0f;
+	const float delta_time = (SDL_GetTicks() - ticks_last_frame) / 1000.0f;
 	ticks_last_frame = SDL_GetTicks();
 
 	move_player(delta_time);
