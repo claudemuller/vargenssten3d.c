@@ -1,8 +1,7 @@
-#include "SDL_pixels.h"
-#include "SDL_render.h"
 #include <stdbool.h>
 #include <limits.h>
 #include <SDL.h>
+#include "textures.h"
 
 #define FPS 30
 #define FRAME_TIME_LEN (1000.0 / FPS)
@@ -19,6 +18,7 @@
 
 #define TEX_WIDTH 64
 #define TEX_HEIGHT 64
+#define NUM_TEXTURES 8
 
 #define FOV_ANGLE (60 * PI / 180)
 #define NUM_RAYS WINDOW_WIDTH
@@ -26,18 +26,18 @@
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5}
 };
 
 struct player_t {
@@ -71,7 +71,7 @@ SDL_Renderer *renderer = NULL;
 
 Uint32 *colourBuf = NULL;
 SDL_Texture *colourBufTexture = NULL;
-Uint32* wall_texture = NULL;
+Uint32* textures[NUM_TEXTURES];
 
 bool is_running = false;
 
@@ -134,12 +134,14 @@ void setup(void)
 		WINDOW_HEIGHT
 	);
 
-	wall_texture = (Uint32*)malloc(sizeof(Uint32) * (Uint32)TEX_WIDTH * (Uint32)TEX_HEIGHT);
-	for (size_t x = 0; x < TEX_WIDTH; x++) {
-		for (size_t y = 0; y < TEX_HEIGHT; y++) {
-			wall_texture[(TEX_WIDTH * y) + x] = (x % 8 && y % 8) ? 0xFF0000FF : 0xFF000000;
-		}
-	}
+	textures[0] = (Uint32*)REDBRICK_TEXTURE;
+	textures[1] = (Uint32*)PURPLESTONE_TEXTURE;
+	textures[2] = (Uint32*)MOSSYSTONE_TEXTURE;
+	textures[3] = (Uint32*)GRAYSTONE_TEXTURE;
+	textures[4] = (Uint32*)COLORSTONE_TEXTURE;
+	textures[5] = (Uint32*)BLUESTONE_TEXTURE;
+	textures[6] = (Uint32*)WOOD_TEXTURE;
+	textures[7] = (Uint32*)EAGLE_TEXTURE;
 }
 
 float normalise_angle(const float angle)
@@ -300,11 +302,15 @@ void cast_rays(void)
 
 void render_map(void)
 {
+	int tile_x = 0;
+	int tile_y = 0;
+	int tile_colour = 0;
+
 	for (size_t i = 0; i < MAP_NUM_ROWS; i++) {
 		for (size_t j = 0; j < MAP_NUM_COLS; j++) {
-			const int tile_x = j * TILE_SIZE;
-			const int tile_y = i * TILE_SIZE;
-			const int tile_colour = map[i][j] != 0 ? 255 : 0;
+			tile_x = j * TILE_SIZE;
+			tile_y = i * TILE_SIZE;
+			tile_colour = map[i][j] != 0 ? 255 : 0;
 
 			SDL_SetRenderDrawColor(renderer, tile_colour, tile_colour, tile_colour, 255);
 			const SDL_Rect map_tile_rect = {
@@ -429,11 +435,16 @@ void update(void)
 
 void  generate_3d_projection(void)
 {
+	float perp_distance = 0.0;
+	float distance_projection_plane = 0.0;
+	float projected_wall_height = 0.0;
+	int wall_strip_height = 0.0;
+
 	for (size_t i = 0; i < NUM_RAYS; i++) {
-		const float perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
-		const float distance_projection_plane = (WINDOW_WIDTH / 2) / tan(FOV_ANGLE / 2);
-		const float projected_wall_height = (TILE_SIZE / perp_distance) * distance_projection_plane;
-		const int wall_strip_height = (int)projected_wall_height;
+		perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
+		distance_projection_plane = (WINDOW_WIDTH / 2) / tan(FOV_ANGLE / 2);
+		projected_wall_height = (TILE_SIZE / perp_distance) * distance_projection_plane;
+		wall_strip_height = (int)projected_wall_height;
 
 		int wall_top_pixel = (WINDOW_HEIGHT / 2) - (wall_strip_height / 2);
 		wall_top_pixel = wall_top_pixel < 0 ? 0 : wall_top_pixel;
@@ -454,10 +465,13 @@ void  generate_3d_projection(void)
 			} else {
 				texture_offset_x = (int)rays[i].wall_hit_x % TILE_SIZE;
 			}
+
+			const size_t tex_id = rays[i].wall_hit_content-1;
+
 			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)TEX_HEIGHT / wall_strip_height);
-				const Uint32 texel_colour = wall_texture[(TEX_WIDTH * texture_offset_y) + texture_offset_x];
+				const Uint32 texel_colour = textures[tex_id][(TEX_WIDTH * texture_offset_y) + texture_offset_x];
 				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
 				continue;
 			}
@@ -512,7 +526,6 @@ void render(void)
 void cleanup(void)
 {
 	free(colourBuf);
-	free(wall_texture);
 	SDL_DestroyTexture(colourBufTexture);
 
 	SDL_DestroyRenderer(renderer);
