@@ -2,6 +2,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <SDL.h>
+#include "SDL_pixels.h"
+#include "upng.h"
 #include "textures.h"
 
 #define FPS 30
@@ -19,7 +21,6 @@
 
 #define TEX_WIDTH 64
 #define TEX_HEIGHT 64
-#define NUM_TEXTURES 8
 
 #define FOV_ANGLE (60 * PI / 180)
 #define NUM_RAYS WINDOW_WIDTH
@@ -30,7 +31,7 @@ const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 0, 0, 0, 0, 1},
+    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 9, 0, 6, 0, 0, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1},
@@ -129,20 +130,13 @@ void setup(void)
 	colourBuf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)WINDOW_WIDTH * (uint32_t)WINDOW_HEIGHT);
 	colourBufTexture = SDL_CreateTexture(
 		renderer,
-		SDL_PIXELFORMAT_ABGR8888,
+		SDL_PIXELFORMAT_RGBA32,
 		SDL_TEXTUREACCESS_STREAMING,
 		WINDOW_WIDTH, 
 		WINDOW_HEIGHT
 	);
 
-	textures[0] = (uint32_t*)REDBRICK_TEXTURE;
-	textures[1] = (uint32_t*)PURPLESTONE_TEXTURE;
-	textures[2] = (uint32_t*)MOSSYSTONE_TEXTURE;
-	textures[3] = (uint32_t*)GRAYSTONE_TEXTURE;
-	textures[4] = (uint32_t*)COLORSTONE_TEXTURE;
-	textures[5] = (uint32_t*)BLUESTONE_TEXTURE;
-	textures[6] = (uint32_t*)WOOD_TEXTURE;
-	textures[7] = (uint32_t*)EAGLE_TEXTURE;
+	load_wall_textures();
 }
 
 float normalise_angle(const float angle)
@@ -472,7 +466,7 @@ void  generate_3d_projection(void)
 			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)TEX_HEIGHT / wall_strip_height);
-				const uint32_t texel_colour = textures[tex_id][(TEX_WIDTH * texture_offset_y) + texture_offset_x];
+				const uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(TEX_WIDTH * texture_offset_y) + texture_offset_x];
 				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
 				continue;
 			}
@@ -526,6 +520,7 @@ void render(void)
 
 void cleanup(void)
 {
+	free_wall_textures();
 	free(colourBuf);
 	SDL_DestroyTexture(colourBufTexture);
 
