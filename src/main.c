@@ -349,10 +349,10 @@ void render_player(void)
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	SDL_RenderDrawLine(
 		renderer,
-		player.x,
-		player.y,
-		player.x + cos(player.rotation_angle) * look_indicator_len,
-		player.y + sin(player.rotation_angle) * look_indicator_len
+		player_rect.x,
+		player_rect.y,
+		player_rect.x + cos(player.rotation_angle) * look_indicator_len,
+		player_rect.y + sin(player.rotation_angle) * look_indicator_len
 	);
 }
 
@@ -442,7 +442,7 @@ void render(void)
 
 	// Clear colour buffer
 	render_colour_buf();
-	clear_colour_buf(0xFFFFFF00);
+	clear_colour_buf(0xFF000000);
 
 	// Render minimap
 	render_map();
