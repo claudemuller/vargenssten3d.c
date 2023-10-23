@@ -266,7 +266,7 @@ void cast_ray(const float angle, const int stripId) {
         rays[stripId].wall_hit_x = horz_wall_hit_x;
         rays[stripId].wall_hit_y = horz_wall_hit_y;
         rays[stripId].wall_hit_content = horz_wall_content;
-        rays[stripId].was_hit_vert = true;
+        rays[stripId].was_hit_vert = false;
     }
 
     rays[stripId].ray_angle = ray_angle;
@@ -415,6 +415,25 @@ void update(void)
 	cast_rays();
 }
 
+void  generate_3d_projection(void)
+{
+	for (size_t i = 0; i < NUM_RAYS; i++) {
+		const float perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
+		const float distance_projection_plane = (WINDOW_WIDTH / 2) / tan(FOV_ANGLE / 2);
+		const float projected_wall_height = (TILE_SIZE / perp_distance) * distance_projection_plane;
+		const int wall_strip_height = (int)projected_wall_height;
+
+		int wall_top_pixel = (WINDOW_HEIGHT / 2) - (wall_strip_height / 2);
+		wall_top_pixel = wall_top_pixel < 0 ? 0 : wall_top_pixel;
+		int wall_bottom_pixel = (WINDOW_HEIGHT / 2) + (wall_strip_height / 2);
+		wall_bottom_pixel = wall_bottom_pixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wall_bottom_pixel;
+
+		for (int y = wall_top_pixel; y < wall_bottom_pixel; y++) {
+			colourBuf[(WINDOW_WIDTH * y) + i] = rays[i].was_hit_vert ? 0xFFFFFFFF : 0xFFCCCCCC;
+		}
+	}	
+}
+
 void  clear_colour_buf(const Uint32 colour)
 {
 	for (size_t x = 0; x < WINDOW_WIDTH; x++) {
@@ -440,6 +459,8 @@ void render(void)
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
+	generate_3d_projection();
+	
 	// Clear colour buffer
 	render_colour_buf();
 	clear_colour_buf(0xFF000000);
@@ -454,6 +475,9 @@ void render(void)
 
 void cleanup(void)
 {
+	free(colourBuf);
+	SDL_DestroyTexture(colourBufTexture);
+
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
