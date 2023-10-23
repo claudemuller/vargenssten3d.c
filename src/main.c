@@ -17,6 +17,9 @@
 #define WINDOW_WIDTH (MAP_NUM_COLS * TILE_SIZE)
 #define WINDOW_HEIGHT (MAP_NUM_ROWS * TILE_SIZE)
 
+#define TEX_WIDTH 64
+#define TEX_HEIGHT 64
+
 #define FOV_ANGLE (60 * PI / 180)
 #define NUM_RAYS WINDOW_WIDTH
 #define MINIMAP_SCALE_FACTOR 0.2
@@ -65,8 +68,10 @@ struct ray_t {
 
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
+
 Uint32 *colourBuf = NULL;
 SDL_Texture *colourBufTexture = NULL;
+Uint32* wall_texture = NULL;
 
 bool is_running = false;
 
@@ -120,7 +125,7 @@ void setup(void)
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
 
-	colourBuf = (Uint32*)malloc(sizeof(Uint32) * (Uint32)(WINDOW_WIDTH * WINDOW_HEIGHT));
+	colourBuf = (Uint32*)malloc(sizeof(Uint32) * (Uint32)WINDOW_WIDTH * (Uint32)WINDOW_HEIGHT);
 	colourBufTexture = SDL_CreateTexture(
 		renderer,
 		SDL_PIXELFORMAT_ABGR8888,
@@ -128,6 +133,13 @@ void setup(void)
 		WINDOW_WIDTH, 
 		WINDOW_HEIGHT
 	);
+
+	wall_texture = (Uint32*)malloc(sizeof(Uint32) * (Uint32)TEX_WIDTH * (Uint32)TEX_HEIGHT);
+	for (size_t x = 0; x < TEX_WIDTH; x++) {
+		for (size_t y = 0; y < TEX_HEIGHT; y++) {
+			wall_texture[(TEX_WIDTH * y) + x] = (x % 8 && y % 8) ? 0xFF0000FF : 0xFF000000;
+		}
+	}
 }
 
 float normalise_angle(const float angle)
@@ -428,8 +440,32 @@ void  generate_3d_projection(void)
 		int wall_bottom_pixel = (WINDOW_HEIGHT / 2) + (wall_strip_height / 2);
 		wall_bottom_pixel = wall_bottom_pixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wall_bottom_pixel;
 
-		for (int y = wall_top_pixel; y < wall_bottom_pixel; y++) {
-			colourBuf[(WINDOW_WIDTH * y) + i] = rays[i].was_hit_vert ? 0xFFFFFFFF : 0xFFCCCCCC;
+		for (int y = 0; y < WINDOW_HEIGHT; y++) {
+			// Roof
+			if (y < wall_top_pixel) {
+				colourBuf[(WINDOW_WIDTH * y) + i] = 0xFF333333;
+				continue;
+			}
+
+			// Walls
+			size_t texture_offset_x;
+			if (rays[i].was_hit_vert) {
+				texture_offset_x = (int)rays[i].wall_hit_y % TILE_SIZE;
+			} else {
+				texture_offset_x = (int)rays[i].wall_hit_x % TILE_SIZE;
+			}
+			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
+				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
+				const size_t texture_offset_y = distance_from_top * ((float)TEX_HEIGHT / wall_strip_height);
+				const Uint32 texel_colour = wall_texture[(TEX_WIDTH * texture_offset_y) + texture_offset_x];
+				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
+				continue;
+			}
+
+			// Floor
+			if (y >= wall_bottom_pixel) {
+				colourBuf[(WINDOW_WIDTH * y) + i] = 0xFF777777;
+			}
 		}
 	}	
 }
@@ -476,6 +512,7 @@ void render(void)
 void cleanup(void)
 {
 	free(colourBuf);
+	free(wall_texture);
 	SDL_DestroyTexture(colourBufTexture);
 
 	SDL_DestroyRenderer(renderer);
