@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <limits.h>
+#include <stdint.h>
 #include <SDL.h>
 #include "textures.h"
 
@@ -69,9 +70,9 @@ struct ray_t {
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 
-Uint32 *colourBuf = NULL;
+uint32_t *colourBuf = NULL;
 SDL_Texture *colourBufTexture = NULL;
-Uint32* textures[NUM_TEXTURES];
+uint32_t* textures[NUM_TEXTURES];
 
 bool is_running = false;
 
@@ -125,7 +126,7 @@ void setup(void)
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
 
-	colourBuf = (Uint32*)malloc(sizeof(Uint32) * (Uint32)WINDOW_WIDTH * (Uint32)WINDOW_HEIGHT);
+	colourBuf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)WINDOW_WIDTH * (uint32_t)WINDOW_HEIGHT);
 	colourBufTexture = SDL_CreateTexture(
 		renderer,
 		SDL_PIXELFORMAT_ABGR8888,
@@ -134,14 +135,14 @@ void setup(void)
 		WINDOW_HEIGHT
 	);
 
-	textures[0] = (Uint32*)REDBRICK_TEXTURE;
-	textures[1] = (Uint32*)PURPLESTONE_TEXTURE;
-	textures[2] = (Uint32*)MOSSYSTONE_TEXTURE;
-	textures[3] = (Uint32*)GRAYSTONE_TEXTURE;
-	textures[4] = (Uint32*)COLORSTONE_TEXTURE;
-	textures[5] = (Uint32*)BLUESTONE_TEXTURE;
-	textures[6] = (Uint32*)WOOD_TEXTURE;
-	textures[7] = (Uint32*)EAGLE_TEXTURE;
+	textures[0] = (uint32_t*)REDBRICK_TEXTURE;
+	textures[1] = (uint32_t*)PURPLESTONE_TEXTURE;
+	textures[2] = (uint32_t*)MOSSYSTONE_TEXTURE;
+	textures[3] = (uint32_t*)GRAYSTONE_TEXTURE;
+	textures[4] = (uint32_t*)COLORSTONE_TEXTURE;
+	textures[5] = (uint32_t*)BLUESTONE_TEXTURE;
+	textures[6] = (uint32_t*)WOOD_TEXTURE;
+	textures[7] = (uint32_t*)EAGLE_TEXTURE;
 }
 
 float normalise_angle(const float angle)
@@ -471,7 +472,7 @@ void  generate_3d_projection(void)
 			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)TEX_HEIGHT / wall_strip_height);
-				const Uint32 texel_colour = textures[tex_id][(TEX_WIDTH * texture_offset_y) + texture_offset_x];
+				const uint32_t texel_colour = textures[tex_id][(TEX_WIDTH * texture_offset_y) + texture_offset_x];
 				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
 				continue;
 			}
@@ -484,7 +485,7 @@ void  generate_3d_projection(void)
 	}	
 }
 
-void  clear_colour_buf(const Uint32 colour)
+void  clear_colour_buf(const uint32_t colour)
 {
 	for (size_t x = 0; x < WINDOW_WIDTH; x++) {
 		for (size_t y = 0; y < WINDOW_HEIGHT; y++) {
@@ -499,7 +500,7 @@ void render_colour_buf(void)
 		colourBufTexture, 
 		NULL, 
 		colourBuf, 
-		(int)((Uint32)WINDOW_WIDTH * sizeof(Uint32))
+		(int)((uint32_t)WINDOW_WIDTH * sizeof(uint32_t))
 	);
 	SDL_RenderCopy(renderer, colourBufTexture, NULL, NULL);
 }
