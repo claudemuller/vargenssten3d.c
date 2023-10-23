@@ -1,3 +1,5 @@
+#include "SDL_pixels.h"
+#include "SDL_render.h"
 #include <stdbool.h>
 #include <limits.h>
 #include <SDL.h>
@@ -17,7 +19,7 @@
 
 #define FOV_ANGLE (60 * PI / 180)
 #define NUM_RAYS WINDOW_WIDTH
-#define MINIMAP_SCALE_FACTOR 1.0
+#define MINIMAP_SCALE_FACTOR 0.2
 
 const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
@@ -63,6 +65,8 @@ struct ray_t {
 
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
+Uint32 *colourBuf = NULL;
+SDL_Texture *colourBufTexture = NULL;
 
 bool is_running = false;
 
@@ -115,6 +119,15 @@ void setup(void)
 	player.rotation_angle = PI / 2;
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
+
+	colourBuf = (Uint32*)malloc(sizeof(Uint32) * (Uint32)(WINDOW_WIDTH * WINDOW_HEIGHT));
+	colourBufTexture = SDL_CreateTexture(
+		renderer,
+		SDL_PIXELFORMAT_ABGR8888,
+		SDL_TEXTUREACCESS_STREAMING,
+		WINDOW_WIDTH, 
+		WINDOW_HEIGHT
+	);
 }
 
 float normalise_angle(const float angle)
@@ -332,13 +345,14 @@ void render_player(void)
 	};
 	SDL_RenderFillRect(renderer, &player_rect);
 
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+	const int look_indicator_len = 40;
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	SDL_RenderDrawLine(
 		renderer,
-		player.x * MINIMAP_SCALE_FACTOR,
-		player.y * MINIMAP_SCALE_FACTOR,
-		player.x + cos(player.rotation_angle) * 40 * MINIMAP_SCALE_FACTOR,
-		player.y + sin(player.rotation_angle) * 40 * MINIMAP_SCALE_FACTOR
+		player.x,
+		player.y,
+		player.x + cos(player.rotation_angle) * look_indicator_len,
+		player.y + sin(player.rotation_angle) * look_indicator_len
 	);
 }
 
@@ -401,11 +415,36 @@ void update(void)
 	cast_rays();
 }
 
+void  clear_colour_buf(const Uint32 colour)
+{
+	for (size_t x = 0; x < WINDOW_WIDTH; x++) {
+		for (size_t y = 0; y < WINDOW_HEIGHT; y++) {
+			colourBuf[(WINDOW_WIDTH * y) + x] = colour;
+		}
+	}
+}
+
+void render_colour_buf(void)
+{
+	SDL_UpdateTexture(
+		colourBufTexture, 
+		NULL, 
+		colourBuf, 
+		(int)((Uint32)WINDOW_WIDTH * sizeof(Uint32))
+	);
+	SDL_RenderCopy(renderer, colourBufTexture, NULL, NULL);
+}
+
 void render(void)
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 
+	// Clear colour buffer
+	render_colour_buf();
+	clear_colour_buf(0xFFFFFF00);
+
+	// Render minimap
 	render_map();
 	render_rays();
 	render_player();
