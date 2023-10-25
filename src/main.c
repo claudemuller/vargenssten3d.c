@@ -2,7 +2,6 @@
 #include <limits.h>
 #include <stdint.h>
 #include <SDL.h>
-#include "SDL_pixels.h"
 #include "upng.h"
 #include "textures.h"
 
@@ -18,9 +17,6 @@
 
 #define WINDOW_WIDTH (MAP_NUM_COLS * TILE_SIZE)
 #define WINDOW_HEIGHT (MAP_NUM_ROWS * TILE_SIZE)
-
-#define TEX_WIDTH 64
-#define TEX_HEIGHT 64
 
 #define FOV_ANGLE (60 * PI / 180)
 #define NUM_RAYS WINDOW_WIDTH
@@ -74,6 +70,7 @@ SDL_Renderer *renderer = NULL;
 uint32_t *colourBuf = NULL;
 SDL_Texture *colourBufTexture = NULL;
 uint32_t* textures[NUM_TEXTURES];
+texture_t wall_textures[NUM_TEXTURES] = {0}; 
 
 bool is_running = false;
 
@@ -382,31 +379,31 @@ void process_input(void)
 			if (event.key.keysym.sym == SDLK_ESCAPE) {
 				is_running = false;
 			}
-			if (event.key.keysym.sym == SDLK_UP) {
+			if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_w) {
 				player.walk_direction = 1;
 			}
-			if (event.key.keysym.sym == SDLK_DOWN) {
+			if (event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_s) {
 				player.walk_direction = -1;
 			}
-			if (event.key.keysym.sym == SDLK_RIGHT) {
+			if (event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_d) {
 				player.turn_direction = 1;
 			}
-			if (event.key.keysym.sym == SDLK_LEFT) {
+			if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_a) {
 				player.turn_direction = -1;
 			}
 		} break;
 
 		case SDL_KEYUP: {
-			if (event.key.keysym.sym == SDLK_UP) {
+			if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_w) {
 				player.walk_direction = 0;
 			}
-			if (event.key.keysym.sym == SDLK_DOWN) {
+			if (event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_s) {
 				player.walk_direction = 0;
 			}
-			if (event.key.keysym.sym == SDLK_LEFT) {
+			if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_d) {
 				player.turn_direction = 0;
 			}
-			if (event.key.keysym.sym == SDLK_RIGHT) {
+			if (event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_a) {
 				player.turn_direction = 0;
 			}
 		} break;
@@ -437,7 +434,7 @@ void  generate_3d_projection(void)
 
 	for (size_t i = 0; i < NUM_RAYS; i++) {
 		perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
-		distance_projection_plane = (WINDOW_WIDTH / 2) / tan(FOV_ANGLE / 2);
+		distance_projection_plane = (WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2);
 		projected_wall_height = (TILE_SIZE / perp_distance) * distance_projection_plane;
 		wall_strip_height = (int)projected_wall_height;
 
@@ -463,10 +460,13 @@ void  generate_3d_projection(void)
 
 			const size_t tex_id = rays[i].wall_hit_content-1;
 
+			int texture_width = wall_textures[tex_id].width;
+			int texture_height = wall_textures[tex_id].height;
+
 			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
-				const size_t texture_offset_y = distance_from_top * ((float)TEX_HEIGHT / wall_strip_height);
-				const uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(TEX_WIDTH * texture_offset_y) + texture_offset_x];
+				const size_t texture_offset_y = distance_from_top * ((float)texture_width / wall_strip_height);
+				const uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
 				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
 				continue;
 			}

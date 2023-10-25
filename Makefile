@@ -12,14 +12,14 @@ ASANFLAGS=-fsanitize=address -fno-common -fno-omit-frame-pointer
 CFLAGS += $(shell pkg-config --cflags sdl2 SDL2_image)
 LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_image)
 LIBS =
-SRC_FILES = ./src/*.c
+SRC = ./src/*.c
 BIN_DIR = ./bin
 BIN = $(BIN_DIR)/vargenssten3d
 TEST_DIR = ./tests
 TEST_SRC = $(filter-out ./src/main.c, $(wildcard ./src/*.c)) $(TEST_DIR)/*.c
 
 build: bin-dir
-	$(CC) $(CFLAGS) $(LIBS) $(SRC_FILES) -o $(BIN) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LIBS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 bin-dir:
 	mkdir -p $(BIN_DIR)
@@ -28,7 +28,7 @@ debug: debug-build
 	$(DBG_BIN) $(BIN) $(ARGS)
 
 debug-build: bin-dir
-	$(CC) $(CFLAGS) -g $(LIBS) $(SRC_FILES) -o $(BIN) $(LDFLAGS)
+	$(CC) $(CFLAGS) -g $(LIBS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 run: build
 	@$(BIN) $(ARGS)
@@ -40,9 +40,12 @@ test-debug:
 	$(CC) $(CFLAGS) -g $(LIBS) $(TEST_SRC) -o $(TEST_DIR)/tests $(LDFLAGS) && lldb $(TEST_DIR)/tests $(ARGS)
 
 memcheck:
-	@$(CC) -g $(SRC) $(ASANFLAGS) $(CFLAGS) $(INCS) $(LIBS) $(LFLAGS) -o memcheck.out
+	@$(CC) $(ASANFLAGS) $(CFLAGS) -g $(LIBS) $(SRC) $(LDFLAGS) -o memcheck.out
 	@./memcheck.out
 	@echo "Memory check passed"
+
+leakscheck:
+	leaks -atExit -- $(BIN)
 
 clean:
 	rm -rf $(BIN_DIR)/* $(TEST_DIR)/tests*

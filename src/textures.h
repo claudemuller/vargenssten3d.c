@@ -13,7 +13,7 @@ typedef struct {
     int height;
 } texture_t;
 
-texture_t wall_textures[NUM_TEXTURES];
+extern texture_t wall_textures[NUM_TEXTURES];
 
 void load_wall_textures(void);
 void free_wall_textures(void);
