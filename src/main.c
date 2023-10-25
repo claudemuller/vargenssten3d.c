@@ -69,8 +69,8 @@ struct ray_t {
 SDL_Window *window = NULL;
 SDL_Renderer *renderer = NULL;
 
-uint32_t *colourBuf = NULL;
-SDL_Texture *colourBufTexture = NULL;
+uint32_t *colour_buf = NULL;
+SDL_Texture *colour_buf_texture = NULL;
 uint32_t* textures[NUM_TEXTURES];
 texture_t wall_textures[NUM_TEXTURES] = {0}; 
 
@@ -126,8 +126,8 @@ void setup(void)
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
 
-	colourBuf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)WINDOW_WIDTH * (uint32_t)WINDOW_HEIGHT);
-	colourBufTexture = SDL_CreateTexture(
+	colour_buf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)WINDOW_WIDTH * (uint32_t)WINDOW_HEIGHT);
+	colour_buf_texture = SDL_CreateTexture(
 		renderer,
 		SDL_PIXELFORMAT_RGBA32,
 		SDL_TEXTUREACCESS_STREAMING,
@@ -444,7 +444,7 @@ void  generate_3d_projection(void)
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
 			// Roof
 			if (y < wall_top_pixel) {
-				colourBuf[(WINDOW_WIDTH * y) + i] = 0xFF333333;
+				colour_buf[(WINDOW_WIDTH * y) + i] = 0xFF333333;
 				continue;
 			}
 
@@ -464,14 +464,15 @@ void  generate_3d_projection(void)
 			if (y >= wall_top_pixel && y < wall_bottom_pixel) {
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)texture_width / wall_strip_height);
-				const uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
-				colourBuf[(WINDOW_WIDTH * y) + i] = texel_colour;
+				uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
+				// texel_colour = (texel_colour & 0xfefefe) >> 1;
+				colour_buf[(WINDOW_WIDTH * y) + i] = texel_colour;
 				continue;
 			}
 
 			// Floor
 			if (y >= wall_bottom_pixel) {
-				colourBuf[(WINDOW_WIDTH * y) + i] = 0xFF777777;
+				colour_buf[(WINDOW_WIDTH * y) + i] = 0xFF777777;
 			}
 		}
 	}	
@@ -481,7 +482,7 @@ void  clear_colour_buf(const uint32_t colour)
 {
 	for (size_t x = 0; x < WINDOW_WIDTH; x++) {
 		for (size_t y = 0; y < WINDOW_HEIGHT; y++) {
-			colourBuf[(WINDOW_WIDTH * y) + x] = colour;
+			colour_buf[(WINDOW_WIDTH * y) + x] = colour;
 		}
 	}
 }
@@ -489,12 +490,12 @@ void  clear_colour_buf(const uint32_t colour)
 void render_colour_buf(void)
 {
 	SDL_UpdateTexture(
-		colourBufTexture, 
+		colour_buf_texture, 
 		NULL, 
-		colourBuf, 
+		colour_buf, 
 		(int)((uint32_t)WINDOW_WIDTH * sizeof(uint32_t))
 	);
-	SDL_RenderCopy(renderer, colourBufTexture, NULL, NULL);
+	SDL_RenderCopy(renderer, colour_buf_texture, NULL, NULL);
 }
 
 void render(void)
@@ -519,8 +520,8 @@ void render(void)
 void cleanup(void)
 {
 	free_wall_textures();
-	free(colourBuf);
-	SDL_DestroyTexture(colourBufTexture);
+	free(colour_buf);
+	SDL_DestroyTexture(colour_buf_texture);
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
