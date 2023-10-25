@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <limits.h>
 #include <stdint.h>
@@ -19,6 +20,7 @@
 #define WINDOW_HEIGHT (MAP_NUM_ROWS * TILE_SIZE)
 
 #define FOV_ANGLE (60 * PI / 180)
+#define DISTANCE_PROJECTION_PLANE ((WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2))
 #define NUM_RAYS WINDOW_WIDTH
 #define MINIMAP_SCALE_FACTOR 0.2
 
@@ -284,11 +286,9 @@ void cast_ray(const float angle, const int stripId) {
 
 void cast_rays(void)
 {
-	float ray_angle = player.rotation_angle - (FOV_ANGLE / 2);
-
-	for (size_t strip_id = 0; strip_id < NUM_RAYS; strip_id++) {
-		cast_ray(ray_angle, strip_id);
-		ray_angle += FOV_ANGLE / NUM_RAYS;
+	for (size_t col = 0; col < NUM_RAYS; col++) {
+		float ray_angle = player.rotation_angle + atan((col - NUM_RAYS / 2.0) / DISTANCE_PROJECTION_PLANE);
+		cast_ray(ray_angle, col);
 	}
 }
 
@@ -428,14 +428,12 @@ void update(void)
 void  generate_3d_projection(void)
 {
 	float perp_distance = 0.0;
-	float distance_projection_plane = 0.0;
 	float projected_wall_height = 0.0;
 	int wall_strip_height = 0.0;
 
 	for (size_t i = 0; i < NUM_RAYS; i++) {
 		perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
-		distance_projection_plane = (WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2);
-		projected_wall_height = (TILE_SIZE / perp_distance) * distance_projection_plane;
+		projected_wall_height = (TILE_SIZE / perp_distance) * DISTANCE_PROJECTION_PLANE;
 		wall_strip_height = (int)projected_wall_height;
 
 		int wall_top_pixel = (WINDOW_HEIGHT / 2) - (wall_strip_height / 2);
