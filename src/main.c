@@ -4,39 +4,10 @@
 #include <stdint.h>
 #include <SDL.h>
 #include "upng.h"
+#include "constants.h"
 #include "graphics.h"
+#include "map.h"
 #include "textures.h"
-
-#define FPS 30
-#define FRAME_TIME_LEN (1000.0 / FPS)
-
-#define PI 3.14159265
-#define TWO_PI 6.28318530
-
-#define TILE_SIZE 64
-#define MAP_NUM_ROWS 13
-#define MAP_NUM_COLS 20
-
-#define FOV_ANGLE (60 * PI / 180)
-#define DISTANCE_PROJECTION_PLANE ((WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2))
-#define NUM_RAYS WINDOW_WIDTH
-#define MINIMAP_SCALE_FACTOR 0.2
-
-const int map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 2, 2, 0, 3, 0, 4, 0, 9, 0, 6, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 1},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 5},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 5}
-};
 
 struct player_t {
 	float x;
@@ -93,21 +64,6 @@ float distance_between_points(const float x1, const float y1, const float x2, co
 	return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
 }
 
-bool map_has_wall_at(const float x, const float y)
-{
-	if (
-		x < 0 || x > MAP_NUM_COLS * TILE_SIZE 
-		|| y < 0 || y > MAP_NUM_ROWS * TILE_SIZE
-	) {
-		return true;
-	}
-
-	const int col = floor(x / TILE_SIZE);
-	const int row = floor(y / TILE_SIZE);
-
-	return map[row][col] != 0;
-}
-
 void cast_ray(const float angle, const int stripId) {
     float ray_angle = normalise_angle(angle);
     
@@ -141,17 +97,17 @@ void cast_ray(const float angle, const int stripId) {
     float next_horz_touch_x = xintercept;
     float next_horz_touch_y = yintercept;
 
-    while (
-		next_horz_touch_x >= 0 && next_horz_touch_x <= MAP_NUM_COLS * TILE_SIZE
-		 && next_horz_touch_y >= 0 && next_horz_touch_y <= MAP_NUM_ROWS * TILE_SIZE
-	) {
+    while (is_inside_map(next_horz_touch_x, next_horz_touch_y)) {
         float x_to_check = next_horz_touch_x;
         float y_to_check = next_horz_touch_y + (is_ray_facing_up ? -1 : 0);
         
         if (map_has_wall_at(x_to_check, y_to_check)) {
             horz_wall_hit_x = next_horz_touch_x;
             horz_wall_hit_y = next_horz_touch_y;
-            horz_wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+            horz_wall_content = get_map_at(
+				(int)floor(y_to_check / TILE_SIZE),
+				 (int)floor(x_to_check / TILE_SIZE)
+			);
             found_horz_wall_hit = true;
             break;
         }
@@ -181,17 +137,17 @@ void cast_ray(const float angle, const int stripId) {
     float next_vert_touch_x = xintercept;
     float next_vert_touch_y = yintercept;
 
-    while (
-		next_vert_touch_x >= 0 && next_vert_touch_x <= MAP_NUM_COLS * TILE_SIZE
-		&& next_vert_touch_y >= 0 && next_vert_touch_y <= MAP_NUM_ROWS * TILE_SIZE
-	) {
+    while (is_inside_map(next_vert_touch_x, next_vert_touch_y)) {
         float x_to_check = next_vert_touch_x + (is_ray_facing_left ? -1 : 0);
         float y_to_check = next_vert_touch_y;
         
         if (map_has_wall_at(x_to_check, y_to_check)) {
             vert_wall_hit_x = next_vert_touch_x;
             vert_wall_hit_y = next_vert_touch_y;
-            vert_wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+            vert_wall_content = get_map_at(
+				(int)floor(y_to_check / TILE_SIZE),
+				(int)floor(x_to_check / TILE_SIZE)
+			);
             found_vert_wall_hit = true;
             break;
         }
@@ -230,32 +186,6 @@ void cast_rays(void)
 		float ray_angle = player.rotation_angle + atan((col - NUM_RAYS / 2.0) / DISTANCE_PROJECTION_PLANE);
 		cast_ray(ray_angle, col);
 	}
-}
-
-void render_map(void)
-{
-	/*
-	int tile_x = 0;
-	int tile_y = 0;
-	int tile_colour = 0;
-
-	for (size_t i = 0; i < MAP_NUM_ROWS; i++) {
-		for (size_t j = 0; j < MAP_NUM_COLS; j++) {
-			tile_x = j * TILE_SIZE;
-			tile_y = i * TILE_SIZE;
-			tile_colour = map[i][j] != 0 ? 255 : 0;
-
-			SDL_SetRenderDrawColor(renderer, tile_colour, tile_colour, tile_colour, 255);
-			const SDL_Rect map_tile_rect = {
-				.x = tile_x * MINIMAP_SCALE_FACTOR,
-				.y = tile_y * MINIMAP_SCALE_FACTOR,
-				.w = TILE_SIZE * MINIMAP_SCALE_FACTOR,
-				.h = TILE_SIZE * MINIMAP_SCALE_FACTOR
-			};
-			SDL_RenderFillRect(renderer, &map_tile_rect);
-		}
-	}
-	*/
 }
 
 void render_rays(void)
@@ -430,7 +360,7 @@ void render(void)
 	render_wall_projection();
 
 	// Render minimap
-	// render_map();
+	render_map();
 	// render_rays();
 	// render_player();
 

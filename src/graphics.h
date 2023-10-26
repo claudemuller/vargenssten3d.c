@@ -11,6 +11,7 @@ bool init_window(const char *win_title);
 void clear_colour_buf(const uint32_t colour);
 void render_colour_buf(void);
 void draw_pixel(const int x, const int y, const uint32_t colour);
+void draw_rect(const int x, const int y, const int w, const int h, const uint32_t colour);
 void free_graphics(void);
 
 #endif // GRAPHICS_H

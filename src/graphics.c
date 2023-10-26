@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <stdint.h>
 #include "graphics.h"
 #include "error.h"
 
@@ -68,6 +69,16 @@ void render_colour_buf(void)
 void draw_pixel(const int x, const int y, const uint32_t colour)
 {
 	colour_buf[(WINDOW_WIDTH * y) + x] = colour;
+}
+
+void draw_rect(const int x, const int y, const int w, const int h, const uint32_t colour)
+{
+	// TODO: better way to loop?
+	for (int i = y; i < y+h; i++) {
+		for (int j = x; j < x+w; j++) {
+			draw_pixel(j, i, colour);
+		}
+	}
 }
 
 void free_graphics(void)
