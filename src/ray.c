@@ -8,13 +8,12 @@
 
 ray_t rays[NUM_RAYS] = {0};
 
-float normalise_angle(const float angle)
+void normalise_angle(float *angle)
 {
-	float norm_angle = remainder(angle, TWO_PI);
-	if (norm_angle < 0) {
-		norm_angle = TWO_PI + norm_angle;
+	*angle = remainder(*angle, TWO_PI);
+	if (*angle < 0) {
+		*angle += TWO_PI;
 	}
-	return norm_angle;
 }
 
 float distance_between_points(const float x1, const float y1, const float x2, const float y2)
@@ -22,13 +21,20 @@ float distance_between_points(const float x1, const float y1, const float x2, co
 	return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
 }
 
-void cast_ray(const player_t player, const float angle, const int strip_id) {
-    float ray_angle = normalise_angle(angle);
+void cast_ray(const player_t player, float angle, const int strip_id) 
+{
+    normalise_angle(&angle);
     
-    bool is_ray_facing_down = ray_angle > 0 && ray_angle < PI;
+	// uint8_t ray_direction = 0;
+
+    bool is_ray_facing_down = angle > 0 && angle < PI;
+ //    if (angle > 0 && angle < PI) {
+	// 	ray_direction |= RAY_FACING_DOWN;
+	// }
+
     bool is_ray_facing_up = !is_ray_facing_down;
 
-	bool is_ray_facing_right = ray_angle < 0.5 * PI || ray_angle > 1.5 * PI;
+	bool is_ray_facing_right = angle < 0.5 * PI || angle > 1.5 * PI;
     bool is_ray_facing_left = !is_ray_facing_right;
     
     float xintercept, yintercept;
@@ -43,12 +49,12 @@ void cast_ray(const player_t player, const float angle, const int strip_id) {
     yintercept = floor(player.y / TILE_SIZE) * TILE_SIZE;
     yintercept += is_ray_facing_down ? TILE_SIZE : 0;
 
-    xintercept = player.x + (yintercept - player.y) / tan(ray_angle);
+    xintercept = player.x + (yintercept - player.y) / tan(angle);
 
     ystep = TILE_SIZE;
     ystep *= is_ray_facing_up ? -1 : 1;
 
-    xstep = TILE_SIZE / tan(ray_angle);
+    xstep = TILE_SIZE / tan(angle);
     xstep *= (is_ray_facing_left && xstep > 0) ? -1 : 1;
     xstep *= (is_ray_facing_right && xstep < 0) ? -1 : 1;
 
@@ -83,12 +89,12 @@ void cast_ray(const player_t player, const float angle, const int strip_id) {
     xintercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
     xintercept += is_ray_facing_right ? TILE_SIZE : 0;
 
-    yintercept = player.y + (xintercept - player.x) * tan(ray_angle);
+    yintercept = player.y + (xintercept - player.x) * tan(angle);
 
     xstep = TILE_SIZE;
     xstep *= is_ray_facing_left ? -1 : 1;
 
-    ystep = TILE_SIZE * tan(ray_angle);
+    ystep = TILE_SIZE * tan(angle);
     ystep *= (is_ray_facing_up && ystep > 0) ? -1 : 1;
     ystep *= (is_ray_facing_down && ystep < 0) ? -1 : 1;
 
@@ -121,7 +127,7 @@ void cast_ray(const player_t player, const float angle, const int strip_id) {
         ? distance_between_points(player.x, player.y, vert_wall_hit_x, vert_wall_hit_y)
         : FLT_MAX;
 
-    rays[strip_id].ray_angle = ray_angle;
+    rays[strip_id].ray_angle = angle;
 
     if (vert_hit_distance < horz_hit_distance) {
         rays[strip_id].distance = vert_hit_distance;

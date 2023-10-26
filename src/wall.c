@@ -1,9 +1,23 @@
 #include <stddef.h>
 #include <math.h>
+#include <stdint.h>
+#include "map.h"
 #include "wall.h"
 #include "constants.h"
 #include "ray.h"
 #include "textures.h"
+
+// Changes the intensity of a colour with an intensity between 0 and 1.
+void change_colour_intensity(uint32_t *colour, const float factor)
+{
+	// Extract individual colours and change their intensity
+	uint32_t a = (*colour & 0xFF000000);	
+	uint32_t r = (*colour & 0x00FF0000) * factor;	
+	uint32_t g = (*colour & 0x0000FF00) * factor;	
+	uint32_t b = (*colour & 0x000000FF) * factor;	
+	// Put it all together again
+	*colour = a | (r & 0x00FF0000) | (g & 0x0000FF00) | (b & 0x000000FF);
+}
 
 void render_wall_projection(const player_t player)
 {
@@ -21,10 +35,14 @@ void render_wall_projection(const player_t player)
 		int wall_bottom_pixel = (WINDOW_HEIGHT / 2) + (wall_strip_height / 2);
 		wall_bottom_pixel = wall_bottom_pixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wall_bottom_pixel;
 
+		float factor = 200 / perp_distance > 1.0 ? 1.0 : 200 / perp_distance;
+
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
 			// Roof
 			if (y < wall_top_pixel) {
-				draw_pixel(x, y, 0xFF333333);
+				uint32_t colour = 0xFF333333;
+				// change_colour_intensity(&colour, factor);
+				draw_pixel(x, y, colour);
 				continue;
 			}
 
@@ -45,14 +63,21 @@ void render_wall_projection(const player_t player)
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)texture_width / wall_strip_height);
 				uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
-				// texel_colour = (texel_colour & 0xfefefe) >> 1;
+				// change_colour_intensity(&texel_colour, factor);
+
+				if (rays[x].was_hit_vert) {
+					change_colour_intensity(&texel_colour, 0.6);
+				}
+
 				draw_pixel(x, y, texel_colour);
 				continue;
 			}
 
 			// Floor
 			if (y >= wall_bottom_pixel) {
-				draw_pixel(x, y, 0xFF777777);
+				uint32_t colour = 0xFF777777;				
+				// change_colour_intensity(&colour, factor);
+				draw_pixel(x, y, colour);
 			}
 		}
 	}	
