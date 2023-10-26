@@ -1,5 +1,6 @@
 #include <SDL.h>
 #include <stdint.h>
+#include "SDL_video.h"
 #include "graphics.h"
 #include "error.h"
 
@@ -22,7 +23,7 @@ bool init_window(const char *win_title)
 		SDL_WINDOWPOS_CENTERED,
 		display_mode.w,
 		display_mode.h,
-		SDL_WINDOW_BORDERLESS
+		SDL_WINDOW_BORDERLESS //| SDL_WINDOW_FULLSCREEN
 	);
 	if (!window) {
 		return handle_err();
@@ -33,6 +34,7 @@ bool init_window(const char *win_title)
 		return handle_err();
 	}
 
+	SDL_SetRelativeMouseMode(true);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	colour_buf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)(WINDOW_WIDTH * WINDOW_HEIGHT));

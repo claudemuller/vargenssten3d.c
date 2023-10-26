@@ -13,8 +13,6 @@ typedef struct {
 	int walk_direction; // -1 for back; +1 for front
 } player_t;
 
-// extern player_t player;
-
 void move_player(player_t *player, float delta_time);
 void render_player(player_t *player);
 

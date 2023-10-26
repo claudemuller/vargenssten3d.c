@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <SDL.h>
 #include <stdlib.h>
+#include "SDL_events.h"
 #include "constants.h"
 #include "graphics.h"
 #include "game.h"
@@ -24,6 +25,7 @@ int main(void)
 	game_t game = {
 		.is_running = false,
 		.ticks_last_frame = 0.0,
+		.input_method = INPUT_MOUSE,
 		.player = {
 			.x = MAP_NUM_COLS * TILE_SIZE / 2.0,
 			.y = MAP_NUM_ROWS * TILE_SIZE / 2.0,
@@ -33,7 +35,7 @@ int main(void)
 			.walk_direction = 0,
 			.rotation_angle = PI / 2,
 			.walk_speed = 100,
-			.turn_speed = 45 * (PI / 180),
+			.turn_speed = 100 * (PI / 180),
 		}
 	};
 
@@ -59,10 +61,17 @@ void setup(void)
 	load_wall_textures();
 }
 
+bool mouse_moving = false;
+	
 void process_input(game_t *game)
 {
 	SDL_Event event;
 	SDL_PollEvent(&event);
+
+	if (event.motion.x == 0) {
+		game->player.turn_direction = 0;
+	}
+
 	switch (event.type) {
 		case SDL_QUIT: {
 			game->is_running = false;
@@ -99,6 +108,14 @@ void process_input(game_t *game)
 			if (event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_a) {
 				game->player.turn_direction = 0;
 			}
+		} break;
+
+		case SDL_MOUSEMOTION: {
+			int mouse_dir = event.motion.xrel;
+			if (mouse_dir != 0) {
+				mouse_dir = mouse_dir < 0 ? -1 : 1;
+			}
+			game->player.turn_direction = mouse_dir;
 		} break;
 	}
 }

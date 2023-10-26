@@ -5,18 +5,6 @@
 #include "graphics.h"
 #include "constants.h"
 
-// player_t player = {
-// 	.x = MAP_NUM_COLS * TILE_SIZE / 2.0,
-// 	.y = MAP_NUM_ROWS * TILE_SIZE / 2.0,
-// 	.width = 1,
-// 	.height = 1,
-// 	.turn_direction = 0,
-// 	.walk_direction = 0,
-// 	.rotation_angle = PI / 2,
-// 	.walk_speed = 100,
-// 	.turn_speed = 45 * (PI / 180),
-// };
-
 void move_player(player_t *player, float delta_time)
 {
 	player->rotation_angle += player->turn_direction * player->turn_speed * delta_time;
@@ -39,15 +27,5 @@ void render_player(player_t *player)
 		player->width * MINIMAP_SCALE_FACTOR,
 		0xFFFFFFFF
 	);
-
-	// const int look_indicator_len = 40;
-	// SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-	// SDL_RenderDrawLine(
-	// 	renderer,
-	// 	player_rect.x,
-	// 	player_rect.y,
-	// 	player_rect.x + cos(player.rotation_angle) * look_indicator_len,
-	// 	player_rect.y + sin(player.rotation_angle) * look_indicator_len
-	// );
 }
 
