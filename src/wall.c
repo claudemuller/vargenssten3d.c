@@ -7,8 +7,8 @@
 #include "ray.h"
 #include "textures.h"
 
-// Changes the intensity of a colour with an intensity between 0 and 1.
-void change_colour_intensity(uint32_t *colour, const float factor)
+// Adjusts the intensity of a colour with an intensity between 0 and 1.
+void adjust_colour_intensity(uint32_t *colour, const float factor)
 {
 	// Extract individual colours and change their intensity
 	uint32_t a = (*colour & 0xFF000000);	
@@ -41,7 +41,7 @@ void render_wall_projection(const player_t player)
 			// Roof
 			if (y < wall_top_pixel) {
 				uint32_t colour = 0xFF333333;
-				// change_colour_intensity(&colour, factor);
+				// adjust_colour_intensity(&colour, factor);
 				draw_pixel(x, y, colour);
 				continue;
 			}
@@ -63,10 +63,10 @@ void render_wall_projection(const player_t player)
 				const int distance_from_top = y + (wall_strip_height / 2) - (WINDOW_HEIGHT / 2);
 				const size_t texture_offset_y = distance_from_top * ((float)texture_width / wall_strip_height);
 				uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
-				// change_colour_intensity(&texel_colour, factor);
+				// adjust_colour_intensity(&texel_colour, factor);
 
 				if (rays[x].was_hit_vert) {
-					change_colour_intensity(&texel_colour, 0.6);
+					adjust_colour_intensity(&texel_colour, 0.6);
 				}
 
 				draw_pixel(x, y, texel_colour);
@@ -76,7 +76,7 @@ void render_wall_projection(const player_t player)
 			// Floor
 			if (y >= wall_bottom_pixel) {
 				uint32_t colour = 0xFF777777;				
-				// change_colour_intensity(&colour, factor);
+				// adjust_colour_intensity(&colour, factor);
 				draw_pixel(x, y, colour);
 			}
 		}
