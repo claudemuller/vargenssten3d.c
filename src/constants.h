@@ -9,7 +9,6 @@
 
 #define FOV_ANGLE (60 * PI / 180)
 #define DISTANCE_PROJECTION_PLANE ((WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2))
-#define NUM_RAYS WINDOW_WIDTH
 
 #define TILE_SIZE 64
 
