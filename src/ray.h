@@ -22,6 +22,6 @@ float normalise_angle(const float angle);
 float distance_between_points(const float x1, const float y1, const float x2, const float y2);
 void cast_ray(const player_t player, const float angle, const int strip_id);
 void cast_rays(const player_t player);
-void render_rays(void);
+void render_rays(const player_t player);
 
 #endif // RAY_H

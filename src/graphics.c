@@ -71,6 +71,23 @@ void draw_pixel(const int x, const int y, const uint32_t colour)
 	colour_buf[(WINDOW_WIDTH * y) + x] = colour;
 }
 
+void draw_line(const int x0, const int y0, const int x1, const int y1, const uint32_t colour)
+{
+	int delta_x = (x1 - x0);
+	int delta_y = (y1 - y0);
+	int side_len = abs(delta_x) >= abs(delta_y) ? abs(delta_x) : abs(delta_y);
+	float x_inc = delta_x / (float)side_len;
+	float y_inc = delta_y / (float)side_len;
+	float cur_x = x0;
+	float cur_y = y0;
+
+	for (int i = 0; i <= side_len; i++) {
+		draw_pixel(round(cur_x), round(cur_y), colour);
+		cur_x += x_inc;
+		cur_y += y_inc;
+	}
+}
+
 void draw_rect(const int x, const int y, const int w, const int h, const uint32_t colour)
 {
 	// TODO: better way to loop?

@@ -176,7 +176,7 @@ void render(game_t *game)
 
 	// Render minimap
 	render_map();
-	render_rays();
+	render_rays(game->player);
 	render_player(&(game->player));
 
 	render_colour_buf();

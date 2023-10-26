@@ -146,20 +146,16 @@ void cast_rays(const player_t player)
 	}
 }
 
-void render_rays(void)
+void render_rays(const player_t player)
 {
-	/*
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
 	for (size_t i = 0; i < NUM_RAYS; i++) {
-		SDL_RenderDrawLine(
-			renderer,
+		draw_line(
 			player.x * MINIMAP_SCALE_FACTOR,
 			player.y * MINIMAP_SCALE_FACTOR,
 			rays[i].wall_hit_x * MINIMAP_SCALE_FACTOR,
-			rays[i].wall_hit_y * MINIMAP_SCALE_FACTOR
+			rays[i].wall_hit_y * MINIMAP_SCALE_FACTOR,
+			0xFF0000FF
 		);
 	}
-	*/
 }
 
