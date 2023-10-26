@@ -9,7 +9,7 @@ CFLAGS += -pedantic
 CFLAGS += -Wmissing-declarations
 CFLAGS += -I./libs/
 ASANFLAGS=-fsanitize=address -fno-common -fno-omit-frame-pointer
-CFLAGS += $(shell pkg-config --cflags sdl2 SDL2_image)
+CFLAGS += $(shell pkg-config --cflags sdl2 SDL2_image) -lm
 LDFLAGS = $(shell pkg-config --libs sdl2 SDL2_image)
 LIBS =
 SRC = ./src/*.c

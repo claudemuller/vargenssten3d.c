@@ -10,6 +10,48 @@
 
 texture_t wall_textures[NUM_TEXTURES] = {0}; 
 
+void setup(void);
+void process_input(game_t *game);
+void update(game_t *game);
+void render(game_t *game);
+void render_wall_projection(const player_t player);
+void cleanup(void);
+
+int main(void)
+{
+	game_t game = {
+		.is_running = false,
+		.ticks_last_frame = 0.0,
+		.player = {
+			.x = MAP_NUM_COLS * TILE_SIZE / 2.0,
+			.y = MAP_NUM_ROWS * TILE_SIZE / 2.0,
+			.width = 1,
+			.height = 1,
+			.turn_direction = 0,
+			.walk_direction = 0,
+			.rotation_angle = PI / 2,
+			.walk_speed = 100,
+			.turn_speed = 45 * (PI / 180),
+		}
+	};
+
+	if (!(game.is_running = init_window("Vargenssten 3D"))) {
+		return 1;
+	}
+
+	setup();
+
+	while (game.is_running) {
+		process_input(&game);
+		update(&game);
+		render(&game);
+	}
+
+	cleanup();
+	
+	return 0;
+}
+
 void render_wall_projection(const player_t player)
 {
 	float perp_distance = 0.0;
@@ -146,37 +188,3 @@ void cleanup(void)
 	free_graphics();
 }
 
-int main(void)
-{
-	game_t game = {
-		.is_running = false,
-		.ticks_last_frame = 0.0,
-		.player = {
-			.x = MAP_NUM_COLS * TILE_SIZE / 2.0,
-			.y = MAP_NUM_ROWS * TILE_SIZE / 2.0,
-			.width = 1,
-			.height = 1,
-			.turn_direction = 0,
-			.walk_direction = 0,
-			.rotation_angle = PI / 2,
-			.walk_speed = 100,
-			.turn_speed = 45 * (PI / 180),
-		}
-	};
-
-	if (!(game.is_running = init_window("Vargenssten 3D"))) {
-		return 1;
-	}
-
-	setup();
-
-	while (game.is_running) {
-		process_input(&game);
-		update(&game);
-		render(&game);
-	}
-
-	cleanup();
-	
-	return 0;
-}
