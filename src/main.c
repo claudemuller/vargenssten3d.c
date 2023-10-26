@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <SDL.h>
 #include "upng.h"
+#include "graphics.h"
 #include "textures.h"
 
 #define FPS 30
@@ -15,9 +16,6 @@
 #define TILE_SIZE 64
 #define MAP_NUM_ROWS 13
 #define MAP_NUM_COLS 20
-
-#define WINDOW_WIDTH (MAP_NUM_COLS * TILE_SIZE)
-#define WINDOW_HEIGHT (MAP_NUM_ROWS * TILE_SIZE)
 
 #define FOV_ANGLE (60 * PI / 180)
 #define DISTANCE_PROJECTION_PLANE ((WINDOW_WIDTH / 2.0) / tan(FOV_ANGLE / 2))
@@ -58,66 +56,18 @@ struct ray_t {
 	float wall_hit_y;
 	float distance;
 	int wall_hit_content;
-	// Use bitmap?
-	bool is_ray_facing_up;
-	bool is_ray_facing_down;
-	bool is_ray_facing_left;
-	bool is_ray_facing_right;
 	bool was_hit_vert;
 } rays[NUM_RAYS];
 
-SDL_Window *window = NULL;
-SDL_Renderer *renderer = NULL;
-
-uint32_t *colour_buf = NULL;
-SDL_Texture *colour_buf_texture = NULL;
-uint32_t* textures[NUM_TEXTURES];
 texture_t wall_textures[NUM_TEXTURES] = {0}; 
 
 bool is_running = false;
-
 float ticks_last_frame = 0;
-
-bool handle_err(void)
-{
-	fprintf(stderr, "error initialising SDL: %s\n", SDL_GetError());
-	return false;
-}
-
-bool init_window(void)
-{
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-		return handle_err();
-	}
-
-	window = SDL_CreateWindow(
-		"Vargenssten 3D",
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED,
-		WINDOW_WIDTH,
-		WINDOW_HEIGHT,
-		SDL_WINDOW_BORDERLESS
-	);
-	if (!window) {
-		return handle_err();
-	}
-
-	renderer = SDL_CreateRenderer(window, -1, 0);
-	if (!renderer) {
-		return handle_err();
-	}
-
-	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-	is_running = true;
-	
-	return true;
-}
 
 void setup(void)
 {
-	player.x = WINDOW_WIDTH / 2.0;
-	player.y = WINDOW_HEIGHT / 2.0;
+	player.x = MAP_NUM_COLS * TILE_SIZE / 2.0;
+	player.y = MAP_NUM_ROWS * TILE_SIZE / 2.0;
 	player.width = 1;
 	player.height = 1;
 	player.turn_direction = 0;
@@ -125,15 +75,6 @@ void setup(void)
 	player.rotation_angle = PI / 2;
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
-
-	colour_buf = (uint32_t*)malloc(sizeof(uint32_t) * (uint32_t)WINDOW_WIDTH * (uint32_t)WINDOW_HEIGHT);
-	colour_buf_texture = SDL_CreateTexture(
-		renderer,
-		SDL_PIXELFORMAT_RGBA32,
-		SDL_TEXTUREACCESS_STREAMING,
-		WINDOW_WIDTH, 
-		WINDOW_HEIGHT
-	);
 
 	load_wall_textures();
 }
@@ -154,7 +95,10 @@ float distance_between_points(const float x1, const float y1, const float x2, co
 
 bool map_has_wall_at(const float x, const float y)
 {
-	if (x < 0 || x > WINDOW_WIDTH || y < 0 || y > WINDOW_HEIGHT) {
+	if (
+		x < 0 || x > MAP_NUM_COLS * TILE_SIZE 
+		|| y < 0 || y > MAP_NUM_ROWS * TILE_SIZE
+	) {
 		return true;
 	}
 
@@ -167,11 +111,11 @@ bool map_has_wall_at(const float x, const float y)
 void cast_ray(const float angle, const int stripId) {
     float ray_angle = normalise_angle(angle);
     
-    int is_ray_facing_down = ray_angle > 0 && ray_angle < PI;
-    int is_ray_facing_up = !is_ray_facing_down;
+    bool is_ray_facing_down = ray_angle > 0 && ray_angle < PI;
+    bool is_ray_facing_up = !is_ray_facing_down;
 
-    int is_ray_facing_right = ray_angle < 0.5 * PI || ray_angle > 1.5 * PI;
-    int is_ray_facing_left = !is_ray_facing_right;
+	bool is_ray_facing_right = ray_angle < 0.5 * PI || ray_angle > 1.5 * PI;
+    bool is_ray_facing_left = !is_ray_facing_right;
     
     float xintercept, yintercept;
     float xstep, ystep;
@@ -198,8 +142,8 @@ void cast_ray(const float angle, const int stripId) {
     float next_horz_touch_y = yintercept;
 
     while (
-		next_horz_touch_x >= 0 && next_horz_touch_x <= WINDOW_WIDTH
-		 && next_horz_touch_y >= 0 && next_horz_touch_y <= WINDOW_HEIGHT
+		next_horz_touch_x >= 0 && next_horz_touch_x <= MAP_NUM_COLS * TILE_SIZE
+		 && next_horz_touch_y >= 0 && next_horz_touch_y <= MAP_NUM_ROWS * TILE_SIZE
 	) {
         float x_to_check = next_horz_touch_x;
         float y_to_check = next_horz_touch_y + (is_ray_facing_up ? -1 : 0);
@@ -238,8 +182,8 @@ void cast_ray(const float angle, const int stripId) {
     float next_vert_touch_y = yintercept;
 
     while (
-		next_vert_touch_x >= 0 && next_vert_touch_x <= WINDOW_WIDTH
-		&& next_vert_touch_y >= 0 && next_vert_touch_y <= WINDOW_HEIGHT
+		next_vert_touch_x >= 0 && next_vert_touch_x <= MAP_NUM_COLS * TILE_SIZE
+		&& next_vert_touch_y >= 0 && next_vert_touch_y <= MAP_NUM_ROWS * TILE_SIZE
 	) {
         float x_to_check = next_vert_touch_x + (is_ray_facing_left ? -1 : 0);
         float y_to_check = next_vert_touch_y;
@@ -263,6 +207,8 @@ void cast_ray(const float angle, const int stripId) {
         ? distance_between_points(player.x, player.y, vert_wall_hit_x, vert_wall_hit_y)
         : FLT_MAX;
 
+    rays[stripId].ray_angle = ray_angle;
+
     if (vert_hit_distance < horz_hit_distance) {
         rays[stripId].distance = vert_hit_distance;
         rays[stripId].wall_hit_x = vert_wall_hit_x;
@@ -276,12 +222,6 @@ void cast_ray(const float angle, const int stripId) {
         rays[stripId].wall_hit_content = horz_wall_content;
         rays[stripId].was_hit_vert = false;
     }
-
-    rays[stripId].ray_angle = ray_angle;
-    rays[stripId].is_ray_facing_down = is_ray_facing_down;
-    rays[stripId].is_ray_facing_up = is_ray_facing_up;
-    rays[stripId].is_ray_facing_left = is_ray_facing_left;
-    rays[stripId].is_ray_facing_right = is_ray_facing_right;
 }
 
 void cast_rays(void)
@@ -294,6 +234,7 @@ void cast_rays(void)
 
 void render_map(void)
 {
+	/*
 	int tile_x = 0;
 	int tile_y = 0;
 	int tile_colour = 0;
@@ -314,10 +255,12 @@ void render_map(void)
 			SDL_RenderFillRect(renderer, &map_tile_rect);
 		}
 	}
+	*/
 }
 
 void render_rays(void)
 {
+	/*
 	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
 	for (size_t i = 0; i < NUM_RAYS; i++) {
@@ -329,6 +272,7 @@ void render_rays(void)
 			rays[i].wall_hit_y * MINIMAP_SCALE_FACTOR
 		);
 	}
+	*/
 }
 
 void move_player(float delta_time)
@@ -346,6 +290,7 @@ void move_player(float delta_time)
 
 void render_player(void)
 {
+	/*
 	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	const SDL_Rect player_rect = {
 		.x = player.x * MINIMAP_SCALE_FACTOR,
@@ -364,6 +309,7 @@ void render_player(void)
 		player_rect.x + cos(player.rotation_angle) * look_indicator_len,
 		player_rect.y + sin(player.rotation_angle) * look_indicator_len
 	);
+	*/
 }
 
 void process_input(void)
@@ -425,14 +371,14 @@ void update(void)
 	cast_rays();
 }
 
-void  generate_3d_projection(void)
+void render_wall_projection(void)
 {
 	float perp_distance = 0.0;
 	float projected_wall_height = 0.0;
 	int wall_strip_height = 0.0;
 
-	for (size_t i = 0; i < NUM_RAYS; i++) {
-		perp_distance = rays[i].distance * cos(rays[i].ray_angle - player.rotation_angle);
+	for (size_t x = 0; x < NUM_RAYS; x++) {
+		perp_distance = rays[x].distance * cos(rays[x].ray_angle - player.rotation_angle);
 		projected_wall_height = (TILE_SIZE / perp_distance) * DISTANCE_PROJECTION_PLANE;
 		wall_strip_height = (int)projected_wall_height;
 
@@ -444,19 +390,19 @@ void  generate_3d_projection(void)
 		for (int y = 0; y < WINDOW_HEIGHT; y++) {
 			// Roof
 			if (y < wall_top_pixel) {
-				colour_buf[(WINDOW_WIDTH * y) + i] = 0xFF333333;
+				draw_pixel(x, y, 0xFF333333);
 				continue;
 			}
 
 			// Walls
 			size_t texture_offset_x;
-			if (rays[i].was_hit_vert) {
-				texture_offset_x = (int)rays[i].wall_hit_y % TILE_SIZE;
+			if (rays[x].was_hit_vert) {
+				texture_offset_x = (int)rays[x].wall_hit_y % TILE_SIZE;
 			} else {
-				texture_offset_x = (int)rays[i].wall_hit_x % TILE_SIZE;
+				texture_offset_x = (int)rays[x].wall_hit_x % TILE_SIZE;
 			}
 
-			const size_t tex_id = rays[i].wall_hit_content-1;
+			const size_t tex_id = rays[x].wall_hit_content-1;
 
 			int texture_width = wall_textures[tex_id].width;
 			int texture_height = wall_textures[tex_id].height;
@@ -466,73 +412,40 @@ void  generate_3d_projection(void)
 				const size_t texture_offset_y = distance_from_top * ((float)texture_width / wall_strip_height);
 				uint32_t texel_colour = wall_textures[tex_id].texture_buffer[(texture_height * texture_offset_y) + texture_offset_x];
 				// texel_colour = (texel_colour & 0xfefefe) >> 1;
-				colour_buf[(WINDOW_WIDTH * y) + i] = texel_colour;
+				draw_pixel(x, y, texel_colour);
 				continue;
 			}
 
 			// Floor
 			if (y >= wall_bottom_pixel) {
-				colour_buf[(WINDOW_WIDTH * y) + i] = 0xFF777777;
+				draw_pixel(x, y, 0xFF777777);
 			}
 		}
 	}	
 }
 
-void  clear_colour_buf(const uint32_t colour)
-{
-	for (size_t x = 0; x < WINDOW_WIDTH; x++) {
-		for (size_t y = 0; y < WINDOW_HEIGHT; y++) {
-			colour_buf[(WINDOW_WIDTH * y) + x] = colour;
-		}
-	}
-}
-
-void render_colour_buf(void)
-{
-	SDL_UpdateTexture(
-		colour_buf_texture, 
-		NULL, 
-		colour_buf, 
-		(int)((uint32_t)WINDOW_WIDTH * sizeof(uint32_t))
-	);
-	SDL_RenderCopy(renderer, colour_buf_texture, NULL, NULL);
-}
-
 void render(void)
 {
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
-
-	generate_3d_projection();
-	
-	// Clear colour buffer
-	render_colour_buf();
 	clear_colour_buf(0xFF000000);
+	render_wall_projection();
 
 	// Render minimap
-	render_map();
-	render_rays();
-	render_player();
-	
-	SDL_RenderPresent(renderer);
+	// render_map();
+	// render_rays();
+	// render_player();
+
+	render_colour_buf();
 }
 
 void cleanup(void)
 {
 	free_wall_textures();
-	free(colour_buf);
-	SDL_DestroyTexture(colour_buf_texture);
-
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
-	SDL_Quit();
+	free_graphics();
 }
 
 int main(void)
 {
-	is_running = false;
-
-	if (!init_window()) {
+	if (!(is_running = init_window("Vargenssten 3D"))) {
 		return 1;
 	}
 
