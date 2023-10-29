@@ -1,46 +1,46 @@
-#include <math.h>
-#include <float.h>
-#include <stddef.h>
-#include "ray.h"
-#include "player.h"
-#include "map.h"
 #include "constants.h"
+#include "map.h"
+#include "player.h"
+#include "ray.h"
+#include <float.h>
+#include <math.h>
+#include <stddef.h>
 
-ray_t rays[NUM_RAYS] = {0};
+ray_t rays[NUM_RAYS] = { 0 };
 
-void normalise_angle(float *angle)
+void normalise_angle(float* angle)
 {
-	*angle = remainder(*angle, TWO_PI);
-	if (*angle < 0) {
-		*angle += TWO_PI;
-	}
+    *angle = remainder(*angle, TWO_PI);
+    if (*angle < 0) {
+        *angle += TWO_PI;
+    }
 }
 
 float distance_between_points(const float x1, const float y1, const float x2, const float y2)
 {
-	return sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+    return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
-void cast_ray(const player_t player, float angle, const int strip_id) 
+void cast_ray(const player_t player, float angle, const int strip_id)
 {
     normalise_angle(&angle);
-    
-	// uint8_t ray_direction = 0;
+
+    // uint8_t ray_direction = 0;
 
     bool is_ray_facing_down = angle > 0 && angle < PI;
- //    if (angle > 0 && angle < PI) {
-	// 	ray_direction |= RAY_FACING_DOWN;
-	// }
+    //    if (angle > 0 && angle < PI) {
+    // 	ray_direction |= RAY_FACING_DOWN;
+    // }
 
     bool is_ray_facing_up = !is_ray_facing_down;
 
-	bool is_ray_facing_right = angle < 0.5 * PI || angle > 1.5 * PI;
+    bool is_ray_facing_right = angle < 0.5 * PI || angle > 1.5 * PI;
     bool is_ray_facing_left = !is_ray_facing_right;
-    
+
     float xintercept, yintercept;
     float xstep, ystep;
 
-	// Horizontal intercept
+    // Horizontal intercept
     int found_horz_wall_hit = false;
     float horz_wall_hit_x = 0;
     float horz_wall_hit_y = 0;
@@ -64,14 +64,13 @@ void cast_ray(const player_t player, float angle, const int strip_id)
     while (is_inside_map(next_horz_touch_x, next_horz_touch_y)) {
         float x_to_check = next_horz_touch_x;
         float y_to_check = next_horz_touch_y + (is_ray_facing_up ? -1 : 0);
-        
+
         if (map_has_wall_at(x_to_check, y_to_check)) {
             horz_wall_hit_x = next_horz_touch_x;
             horz_wall_hit_y = next_horz_touch_y;
             horz_wall_content = get_map_at(
-				(int)floor(y_to_check / TILE_SIZE),
-				 (int)floor(x_to_check / TILE_SIZE)
-			);
+                (int)floor(y_to_check / TILE_SIZE),
+                (int)floor(x_to_check / TILE_SIZE));
             found_horz_wall_hit = true;
             break;
         }
@@ -79,8 +78,8 @@ void cast_ray(const player_t player, float angle, const int strip_id)
         next_horz_touch_x += xstep;
         next_horz_touch_y += ystep;
     }
-    
-	// Vertical intercept
+
+    // Vertical intercept
     int found_vert_wall_hit = false;
     float vert_wall_hit_x = 0;
     float vert_wall_hit_y = 0;
@@ -104,14 +103,13 @@ void cast_ray(const player_t player, float angle, const int strip_id)
     while (is_inside_map(next_vert_touch_x, next_vert_touch_y)) {
         float x_to_check = next_vert_touch_x + (is_ray_facing_left ? -1 : 0);
         float y_to_check = next_vert_touch_y;
-        
+
         if (map_has_wall_at(x_to_check, y_to_check)) {
             vert_wall_hit_x = next_vert_touch_x;
             vert_wall_hit_y = next_vert_touch_y;
             vert_wall_content = get_map_at(
-				(int)floor(y_to_check / TILE_SIZE),
-				(int)floor(x_to_check / TILE_SIZE)
-			);
+                (int)floor(y_to_check / TILE_SIZE),
+                (int)floor(x_to_check / TILE_SIZE));
             found_vert_wall_hit = true;
             break;
         }
@@ -146,22 +144,20 @@ void cast_ray(const player_t player, float angle, const int strip_id)
 
 void cast_rays(const player_t player)
 {
-	for (size_t col = 0; col < NUM_RAYS; col++) {
-		float ray_angle = player.rotation_angle + atan((col - NUM_RAYS / 2.0) / DISTANCE_PROJECTION_PLANE);
-		cast_ray(player, ray_angle, col);
-	}
+    for (size_t col = 0; col < NUM_RAYS; col++) {
+        float ray_angle = player.rotation_angle + atan((col - NUM_RAYS / 2.0) / DISTANCE_PROJECTION_PLANE);
+        cast_ray(player, ray_angle, col);
+    }
 }
 
 void render_rays(const player_t player)
 {
-	for (size_t i = 0; i < NUM_RAYS; i++) {
-		draw_line(
-			player.x * MINIMAP_SCALE_FACTOR,
-			player.y * MINIMAP_SCALE_FACTOR,
-			rays[i].wall_hit_x * MINIMAP_SCALE_FACTOR,
-			rays[i].wall_hit_y * MINIMAP_SCALE_FACTOR,
-			0xFF0000FF
-		);
-	}
+    for (size_t i = 0; i < NUM_RAYS; i++) {
+        draw_line(
+            player.x * MINIMAP_SCALE_FACTOR,
+            player.y * MINIMAP_SCALE_FACTOR,
+            rays[i].wall_hit_x * MINIMAP_SCALE_FACTOR,
+            rays[i].wall_hit_y * MINIMAP_SCALE_FACTOR,
+            0xFF0000FF);
+    }
 }
-
