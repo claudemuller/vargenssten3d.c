@@ -6,7 +6,7 @@
 #include "ray.h"
 #include "textures.h"
 #include "wall.h"
-#include <SDL.h>
+#include "SDL.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -133,9 +133,9 @@ void render(game_t* game)
     render_wall_projection(game->player);
 
     // Render minimap
-    render_map();
-    render_rays(game->player);
-    render_player(&(game->player));
+    // render_map();
+    // render_rays(game->player);
+    // render_player(&(game->player));
 
     render_colour_buf();
 }
