@@ -1,5 +1,7 @@
 # Vargensstein 3D
 
+![Ray casting](screenshot.png)
+
 A [Ray casting](https://en.wikipedia.org/wiki/Ray_casting) game based off of [Wolfenstein 3D](https://en.wikipedia.org/wiki/Wolfenstein_3D) written in C SDL.
 
 ## Requirements

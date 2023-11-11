@@ -40,9 +40,13 @@ test-debug:
 	$(CC) $(CFLAGS) -g $(LIBS) $(TEST_SRC) -o $(TEST_DIR)/tests $(LDFLAGS) && lldb $(TEST_DIR)/tests $(ARGS)
 
 memcheck:
-	@$(CC) $(ASANFLAGS) $(CFLAGS) -g $(LIBS) $(SRC) $(LDFLAGS) -o memcheck.out
-	@./memcheck.out
+	@$(CC) $(ASANFLAGS) $(CFLAGS) -g $(LIBS) $(SRC) $(LDFLAGS) -o $(BIN_DIR)/memcheck.out
+	@$(BIN_DIR)/memcheck.out
 	@echo "Memory check passed"
+
+valgrid:
+	$(CC) $(CFLAGS) -g $(LIBS) $(SRC) -o $(BIN_DIR)/memcheck.out $(LDFLAGS)
+	valgrind --leak-check=yes $(BIN_DIR)/memcheck.out
 
 leakscheck:
 	leaks -atExit -- $(BIN)
