@@ -1,4 +1,6 @@
-# Vargensstein 3D
+# Vargenssten 3D
+
+[![c](https://github.com/claudemuller/vargenssten3d.c/actions/workflows/c.yml/badge.svg)](https://github.com/claudemuller/vargenssten3d.c/actions/workflows/c.yml)
 
 ![Ray casting](screenshot.png)
 
