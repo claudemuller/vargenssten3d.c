@@ -2,9 +2,9 @@
 
 [![c](https://github.com/claudemuller/vargenssten3d.c/actions/workflows/c.yml/badge.svg)](https://github.com/claudemuller/vargenssten3d.c/actions/workflows/c.yml)
 
-![Ray casting](screenshot.png)
-
 A [Ray casting](https://en.wikipedia.org/wiki/Ray_casting) game based off of [Wolfenstein 3D](https://en.wikipedia.org/wiki/Wolfenstein_3D) written in C SDL.
+
+![Ray casting](screenshot.png)
 
 ## Requirements
 
